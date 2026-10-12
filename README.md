@@ -2,177 +2,182 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- Meta tag actualizado para móviles: evita el zoom accidental de la página -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Simulador 3D - Vivienda Bioclimática</title>
+    <title>Modelo Bioclimático 3D</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #222;
-            /* Evita gestos de recarga del navegador en móviles al deslizar */
-            touch-action: none; 
+            background-color: #111;
         }
 
-        /* Interfaz de Usuario (UI) */
+        /* Botón para desplegar/ocultar el menú */
+        #toggle-menu {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #2c3e50;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #2c3e50;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.3s ease;
+        }
+
+        #toggle-menu:hover {
+            background: #f0f0f0;
+        }
+
+        /* Interfaz de Usuario (Panel) */
         #ui-container {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 320px;
+            top: 70px; /* Debajo del botón toggle */
+            left: 15px;
+            width: 300px;
+            max-width: 85vw;
             background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            z-index: 999;
             pointer-events: auto;
-            z-index: 10;
-            box-sizing: border-box;
+            /* Transición para el efecto de deslizar */
+            transform: translateX(0);
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease;
+            opacity: 1;
         }
 
-        h2 { margin-top: 0; font-size: 1.2rem; color: #333; }
-        p { font-size: 0.9rem; color: #555; margin-bottom: 20px; line-height: 1.4; }
-
-        .control-group {
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #ddd;
+        /* Clase para ocultar el panel desplazándolo hacia la izquierda */
+        #ui-container.hidden {
+            transform: translateX(-150%);
+            opacity: 0;
+            pointer-events: none;
         }
 
-        .control-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        h2 { margin: 0 0 10px 0; font-size: 1.1rem; color: #222; }
+        p { font-size: 0.8rem; color: #555; margin-bottom: 15px; line-height: 1.3; }
 
-        button {
+        .control-group { margin-bottom: 12px; }
+
+        button.action-btn {
             width: 100%;
-            padding: 12px 10px; /* Botones un poco más grandes para los dedos */
-            margin-bottom: 10px;
-            border: 2px solid #333;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 2px solid #2c3e50;
             border-radius: 8px;
             background: white;
-            color: #333;
-            font-weight: bold;
-            font-size: 1rem;
+            color: #2c3e50;
+            font-weight: 700;
+            font-size: 0.9rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            /* Elimina el resaltado azul en móviles al tocar */
-            -webkit-tap-highlight-color: transparent; 
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
-        button.active {
-            background: #333;
+        button.action-btn.active {
+            background: #2c3e50;
             color: white;
-            border-color: #333;
         }
 
-        button:hover { background: #e0e0e0; }
-        button.active:hover { background: #555; }
-
-        /* Control deslizante para el Sol */
-        .slider-container {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .slider-container label { font-size: 0.9rem; font-weight: bold; color: #444; }
+        .slider-container { display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px; }
+        .slider-container label { font-size: 0.85rem; font-weight: bold; color: #333; }
         input[type="range"] { 
             width: 100%; 
+            height: 30px; 
             cursor: pointer; 
-            height: 25px; /* Más fácil de agarrar en celular */
+            touch-action: none; 
         }
 
         #instructions {
             position: absolute;
-            bottom: 20px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.7);
             color: white;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 20px;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             pointer-events: none;
             text-align: center;
-            width: 85%;
-            max-width: 400px;
-            box-sizing: border-box;
+            width: max-content;
             z-index: 10;
+            backdrop-filter: blur(4px);
         }
 
-        /* ==========================================
-           DISEÑO RESPONSIVO PARA CELULARES
-           ========================================== */
         @media (max-width: 600px) {
-            #ui-container {
-                top: 10px;
-                left: 5%;
-                width: 90%;
-                padding: 15px;
-            }
-            h2 { font-size: 1.1rem; margin-bottom: 5px; }
-            p { margin-bottom: 15px; font-size: 0.85rem; }
-            button { font-size: 0.9rem; padding: 10px; }
-            #instructions { font-size: 0.75rem; bottom: 10px; padding: 8px 12px; }
+            #toggle-menu { top: 10px; left: 10px; }
+            #ui-container { top: 60px; left: 10px; width: calc(100% - 20px); box-sizing: border-box; }
         }
     </style>
-    <!-- Importar Three.js y OrbitControls desde CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
-    <div id="ui-container">
-        <h2>Análisis Bioclimático 3D</h2>
-        <p>Gira el modelo con el ratón o tus dedos. Usa los controles para simular los fenómenos.</p>
+    <!-- Botón para Mostrar/Ocultar Menú -->
+    <button id="toggle-menu">☰ Controles</button>
 
-        <div class="control-group slider-container">
-            <label for="sunSlider">☀️ Asoleamiento (Hora del día)</label>
+    <div id="ui-container">
+        <h2>Simulación Bioclimática</h2>
+        <p>Ajusta las variables para analizar el comportamiento pasivo del proyecto.</p>
+
+        <div class="slider-container">
+            <label for="sunSlider">☀️ Trayectoria Solar (Hora)</label>
             <input type="range" id="sunSlider" min="0" max="100" value="30">
         </div>
 
         <div class="control-group">
-            <button id="btn-wind">🌬️ Activar Ventilación Cruzada</button>
-        </div>
-
-        <div class="control-group">
-            <button id="btn-temp">🌡️ Análisis Térmico (Calor)</button>
+            <button id="btn-wind" class="action-btn">🌬️ Activar Flujo de Aire</button>
+            <button id="btn-temp" class="action-btn">🌡️ Analizar Temperatura</button>
         </div>
     </div>
 
-    <!-- Instrucciones actualizadas para incluir gestos móviles -->
-    <div id="instructions">
-        👆 1 dedo: Orbitar | ✌️ 2 dedos: Zoom/Mover<br>
-        (🖱️ PC: Clic izq para rotar | Rueda para zoom)
-    </div>
+    <div id="instructions">👆 1 dedo: Orbitar | ✌️ 2 dedos: Zoom</div>
 
     <script>
-        // 1. CONFIGURACIÓN BÁSICA DE THREE.JS
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); 
+        // --- LÓGICA DEL MENÚ DESPLEGABLE ---
+        const toggleBtn = document.getElementById('toggle-menu');
+        const uiContainer = document.getElementById('ui-container');
 
-        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-        
-        // Ajustamos la cámara inicial un poco más lejos para móviles
-        if (window.innerWidth < 600) {
-            camera.position.set(15, 12, 22);
-        } else {
-            camera.position.set(12, 10, 18);
-        }
+        toggleBtn.addEventListener('click', () => {
+            uiContainer.classList.toggle('hidden');
+            if (uiContainer.classList.contains('hidden')) {
+                toggleBtn.innerText = '☰ Mostrar Controles';
+            } else {
+                toggleBtn.innerText = '☰ Ocultar Controles';
+            }
+        });
+
+        // --- 1. ESCENA Y CÁMARA ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x7ec0ee); 
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(16, 12, 20);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.domElement.style.touchAction = 'none';
         document.body.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.maxPolarAngle = Math.PI / 2 - 0.05;
-        
-        // Habilitar controles táctiles explícitamente (activados por defecto, pero lo aseguramos)
-        controls.enableTouch = true; 
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; 
 
-        // 2. ILUMINACIÓN Y SOL
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        // --- 2. ILUMINACIÓN ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
 
         const sunLight = new THREE.DirectionalLight(0xfff5b6, 1.2);
@@ -181,186 +186,217 @@
         sunLight.shadow.mapSize.height = 2048;
         sunLight.shadow.camera.near = 0.5;
         sunLight.shadow.camera.far = 50;
-        const shadowSize = 12;
-        sunLight.shadow.camera.left = -shadowSize;
-        sunLight.shadow.camera.right = shadowSize;
-        sunLight.shadow.camera.top = shadowSize;
-        sunLight.shadow.camera.bottom = -shadowSize;
+        sunLight.shadow.camera.left = -15;
+        sunLight.shadow.camera.right = 15;
+        sunLight.shadow.camera.top = 15;
+        sunLight.shadow.camera.bottom = -15;
         scene.add(sunLight);
 
-        const sunGeo = new THREE.SphereGeometry(1, 32, 32);
-        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+        const sunGeo = new THREE.SphereGeometry(1.2, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
         const sunMesh = new THREE.Mesh(sunGeo, sunMat);
         scene.add(sunMesh);
 
-        // 3. CONSTRUCCIÓN DE LA VIVIENDA
-        const materials = {
-            base: new THREE.MeshStandardMaterial({ color: 0xcccccc }),
-            wall: new THREE.MeshStandardMaterial({ color: 0xeaeaea, roughness: 0.8 }),
-            roof: new THREE.MeshStandardMaterial({ color: 0x444444 }),
-            grass: new THREE.MeshStandardMaterial({ color: 0x4CAF50, roughness: 1 })
+        // --- 3. MATERIALES ---
+        const mat = {
+            ground: new THREE.MeshStandardMaterial({ color: 0x6e8b3d, roughness: 1 }),
+            floor: new THREE.MeshStandardMaterial({ color: 0x909090, roughness: 0.9 }),
+            wall: new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.8 }), 
+            frame: new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.3, metalness: 0.6 }), // Aluminio oscuro
+            glass: new THREE.MeshPhysicalMaterial({  // Material de cristal realista
+                color: 0xadd8e6,
+                metalness: 0.1,
+                roughness: 0.1,
+                transmission: 0.8, // Transparencia tipo cristal (necesita iluminación)
+                transparent: true,
+                opacity: 0.4
+            }),
+            roofFront: new THREE.MeshStandardMaterial({ color: 0x555555 }),
+            grass: new THREE.MeshStandardMaterial({ color: 0x4CAF50, roughness: 0.8 })
         };
 
         const houseGroup = new THREE.Group();
         scene.add(houseGroup);
 
-        // Suelo Exterior
-        const groundGeo = new THREE.PlaneGeometry(50, 50);
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x556B2F });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
+        // Suelo y Base
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), mat.ground);
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Base
-        const base = new THREE.Mesh(new THREE.BoxGeometry(10, 0.5, 8), materials.base);
-        base.position.y = 0.25;
+        const base = new THREE.Mesh(new THREE.BoxGeometry(11, 0.4, 9), mat.floor);
+        base.position.y = 0.2;
         base.receiveShadow = true;
         base.castShadow = true;
         houseGroup.add(base);
 
-        function createWall(w, h, d, x, y, z) {
-            const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), materials.wall);
-            wall.position.set(x, y, z);
-            wall.castShadow = true;
-            wall.receiveShadow = true;
-            houseGroup.add(wall);
-            return wall;
+        function createBox(w, h, d, x, y, z, material, castShadow = true) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+            mesh.position.set(x, y, z);
+            mesh.castShadow = castShadow;
+            mesh.receiveShadow = true;
+            houseGroup.add(mesh);
+            return mesh;
         }
 
-        const walls = [];
-        walls.push(createWall(9.6, 4, 0.4, 0, 2.5, -3.8)); // Muro Trasero
+        // MUROS Y VENTANAS MEJORADAS
+        // Muro Trasero
+        createBox(10.6, 4, 0.4, 0, 2.4, -4.3, mat.wall);
         
-        // Fachada de entrada (Ventana baja)
-        walls.push(createWall(0.4, 1, 8, -4.8, 1, 0));
-        walls.push(createWall(0.4, 1.5, 8, -4.8, 3.75, 0));
-        walls.push(createWall(0.4, 1.5, 2.5, -4.8, 2.25, 2.75));
-        walls.push(createWall(0.4, 1.5, 2.5, -4.8, 2.25, -2.75));
+        // Muro Izquierdo (Entrada)
+        createBox(0.4, 1, 9, -5.3, 0.9, 0, mat.wall); // Antepecho
+        createBox(0.4, 1.5, 9, -5.3, 3.65, 0, mat.wall); // Dintel superior
+        createBox(0.4, 1.5, 3, -5.3, 2.15, 3, mat.wall); // Lado frontal
+        createBox(0.4, 1.5, 3, -5.3, 2.15, -3, mat.wall); // Lado trasero
+        
+        // Marco y Cristal Ventana Izquierda
+        createBox(0.45, 1.6, 3.2, -5.3, 2.15, 0, mat.frame); // Marco principal
+        createBox(0.5, 1.5, 0.1, -5.3, 2.15, 0, mat.frame);  // Parteluz (división central)
+        createBox(0.35, 1.4, 3.0, -5.3, 2.15, 0, mat.glass, false); // Cristal
 
-        // Fachada de salida (Ventana alta)
-        walls.push(createWall(0.4, 2.5, 8, 4.8, 1.75, 0)); 
-        walls.push(createWall(0.4, 0.5, 8, 4.8, 4.25, 0)); 
-        walls.push(createWall(0.4, 1.5, 2.5, 4.8, 3.25, 2.75));
-        walls.push(createWall(0.4, 1.5, 2.5, 4.8, 3.25, -2.75));
+        // Muro Derecho (Salida térmica)
+        createBox(0.4, 2.5, 9, 5.3, 1.65, 0, mat.wall); // Antepecho más alto
+        createBox(0.4, 0.5, 9, 5.3, 4.15, 0, mat.wall); // Dintel superior
+        createBox(0.4, 1, 3, 5.3, 3.4, 3, mat.wall); // Lado frontal
+        createBox(0.4, 1, 3, 5.3, 3.4, -3, mat.wall); // Lado trasero
+        
+        // Marco y Cristal Ventana Derecha
+        createBox(0.45, 1.1, 3.2, 5.3, 3.4, 0, mat.frame); // Marco
+        createBox(0.5, 1.0, 0.1, 5.3, 3.4, 0, mat.frame);  // Parteluz
+        createBox(0.35, 0.9, 3.0, 5.3, 3.4, 0, mat.glass, false); // Cristal
 
-        // Cubierta
-        const roof = new THREE.Mesh(new THREE.BoxGeometry(10.4, 0.4, 8.4), materials.roof);
-        roof.position.set(0, 4.7, 0);
-        roof.castShadow = true;
-        roof.receiveShadow = true;
-        houseGroup.add(roof);
+        // Cubierta y Vegetación
+        createBox(13, 0.3, 11, 0, 4.55, 0, mat.roofFront);
+        createBox(12.6, 0.2, 10.6, 0, 4.8, 0, mat.grass);
 
-        // Cubierta Verde
-        const greenRoof = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 8), materials.grass);
-        greenRoof.position.set(0, 5.0, 0);
-        greenRoof.receiveShadow = true;
-        houseGroup.add(greenRoof);
-
-        for(let i = 0; i < 40; i++) {
-            const plant = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 4), materials.grass);
-            plant.position.set((Math.random() - 0.5) * 9, 5.3, (Math.random() - 0.5) * 7);
+        for(let i = 0; i < 60; i++) {
+            const isCone = Math.random() > 0.5;
+            const geo = isCone ? new THREE.ConeGeometry(0.2, 0.5, 5) : new THREE.SphereGeometry(0.25, 5, 5);
+            const plant = new THREE.Mesh(geo, mat.grass);
+            plant.position.set((Math.random() - 0.5) * 11, 5.0, (Math.random() - 0.5) * 9);
             plant.castShadow = true;
             houseGroup.add(plant);
         }
 
-        // Volumen de Aire Interior
-        const interiorAirGeo = new THREE.BoxGeometry(9.2, 4, 7.6);
-        const interiorAirMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0, depthWrite: false });
-        const interiorAir = new THREE.Mesh(interiorAirGeo, interiorAirMat);
-        interiorAir.position.set(0, 2.5, 0);
-        houseGroup.add(interiorAir);
-
-        // 4. SISTEMA DE PARTÍCULAS
-        const windParticles = new THREE.Group();
-        windParticles.visible = false;
-        scene.add(windParticles);
-
-        const particleGeo = new THREE.SphereGeometry(0.1, 8, 8);
-        const particleMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.6 });
-        
-        const particles = [];
-        for(let i = 0; i < 150; i++) {
-            const p = new THREE.Mesh(particleGeo, particleMat);
-            resetParticle(p);
+        // --- 4. SISTEMAS FÍSICOS (Viento y Calor) ---
+        const windGroup = new THREE.Group();
+        windGroup.visible = false;
+        scene.add(windGroup);
+        const windGeo = new THREE.SphereGeometry(0.12, 8, 8);
+        const windMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.7 });
+        const winds = [];
+        for(let i = 0; i < 120; i++) {
+            const p = new THREE.Mesh(windGeo, windMat);
+            resetWind(p);
             p.position.x = (Math.random() - 0.5) * 15;
-            windParticles.add(p);
-            particles.push(p);
+            windGroup.add(p);
+            winds.push(p);
         }
-
-        function resetParticle(p) {
-            p.position.set(-8 - Math.random() * 2, 1.5 + Math.random() * 1.5, (Math.random() - 0.5) * 2);
-            p.userData.speedX = 0.05 + Math.random() * 0.05;
+        function resetWind(p) {
+            p.position.set(-8 - Math.random() * 2, 1.2 + Math.random() * 1.5, (Math.random() - 0.5) * 2);
+            p.userData.speedX = 0.08 + Math.random() * 0.04;
             p.userData.offsetY = Math.random() * Math.PI * 2;
         }
 
-        // 5. INTERACCIÓN Y UI
+        const heatGroup = new THREE.Group();
+        heatGroup.visible = false;
+        scene.add(heatGroup);
+        const hotGeo = new THREE.SphereGeometry(0.15, 6, 6);
+        const hotMat = new THREE.MeshBasicMaterial({ color: 0xff3300, transparent: true, opacity: 0.6 });
+        const coolMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.6 });
+        const heatParticles = [];
+        
+        for(let i = 0; i < 80; i++) {
+            const p = new THREE.Mesh(hotGeo, hotMat);
+            p.position.set((Math.random() - 0.5) * 14, Math.random() * 6, (Math.random() - 0.5) * 14);
+            p.userData.isOutside = true;
+            heatGroup.add(p);
+            heatParticles.push(p);
+        }
+        for(let i = 0; i < 60; i++) {
+            const p = new THREE.Mesh(hotGeo, coolMat);
+            p.position.set((Math.random() - 0.5) * 9, 0.5 + Math.random() * 3, (Math.random() - 0.5) * 7);
+            p.userData.isOutside = false;
+            heatGroup.add(p);
+            heatParticles.push(p);
+        }
+
+        // --- 5. INTERACCIONES UI ---
         const sunSlider = document.getElementById('sunSlider');
-        function updateSunPosition() {
+        function updateSun() {
             const time = sunSlider.value / 100; 
             const angle = Math.PI * time; 
-            const radius = 15;
-            
-            sunLight.position.x = Math.cos(angle) * radius;
-            sunLight.position.y = Math.sin(angle) * radius;
-            sunLight.position.z = 5; 
+            sunLight.position.x = Math.cos(angle) * 20;
+            sunLight.position.y = Math.sin(angle) * 18;
+            sunLight.position.z = 8; 
             sunMesh.position.copy(sunLight.position);
 
-            if (time < 0.2 || time > 0.8) {
-                scene.background.setHex(0xffaa66); 
-                sunLight.color.setHex(0xffaa66);
-                sunLight.intensity = 0.8;
-            } else {
-                scene.background.setHex(0x87CEEB); 
-                sunLight.color.setHex(0xffffff);
-                sunLight.intensity = 1.2;
+            if (!document.getElementById('btn-temp').classList.contains('active')) {
+                if (time < 0.2 || time > 0.8) {
+                    scene.background.setHex(0xffaa66);
+                    sunLight.color.setHex(0xffaa66);
+                    sunLight.intensity = 0.7;
+                } else {
+                    scene.background.setHex(0x7ec0ee);
+                    sunLight.color.setHex(0xffffff);
+                    sunLight.intensity = 1.3;
+                }
             }
         }
-        
-        // En móviles, 'input' funciona bien pero agregamos 'change' por compatibilidad
-        sunSlider.addEventListener('input', updateSunPosition);
-        sunSlider.addEventListener('change', updateSunPosition);
-        updateSunPosition();
+        sunSlider.addEventListener('input', updateSun);
+        sunSlider.addEventListener('change', updateSun);
+        updateSun();
 
-        let isWindActive = false;
-        const btnWind = document.getElementById('btn-wind');
-        btnWind.addEventListener('click', () => {
-            isWindActive = !isWindActive;
-            windParticles.visible = isWindActive;
-            btnWind.classList.toggle('active');
+        let isWind = false;
+        document.getElementById('btn-wind').addEventListener('click', function() {
+            isWind = !isWind;
+            windGroup.visible = isWind;
+            this.classList.toggle('active');
+            
+            // Efecto visual: abrir las ventanas (hacer desaparecer los cristales momentáneamente)
+            mat.glass.opacity = isWind ? 0.1 : 0.4; 
         });
 
-        let isTempActive = false;
-        const btnTemp = document.getElementById('btn-temp');
-        btnTemp.addEventListener('click', () => {
-            isTempActive = !isTempActive;
-            btnTemp.classList.toggle('active');
+        let isTemp = false;
+        document.getElementById('btn-temp').addEventListener('click', function() {
+            isTemp = !isTemp;
+            heatGroup.visible = isTemp;
+            this.classList.toggle('active');
             
-            if (isTempActive) {
-                materials.wall.color.setHex(0xff4422);
-                materials.wall.emissive.setHex(0x330000);
-                interiorAir.material.opacity = 0.35;
-                scene.background.setHex(0xff7744); 
+            if (isTemp) {
+                mat.wall.color.setHex(0xff4422); 
+                mat.ground.color.setHex(0x553311);
+                scene.background.setHex(0x3a1005); 
+                sunLight.intensity = 0.5;
             } else {
-                materials.wall.color.setHex(0xeaeaea);
-                materials.wall.emissive.setHex(0x000000);
-                interiorAir.material.opacity = 0;
-                updateSunPosition();
+                mat.wall.color.setHex(0xfafafa); 
+                mat.ground.color.setHex(0x6e8b3d);
+                updateSun(); 
             }
         });
 
-        // 6. RENDERIZADO
+        // --- 6. ANIMACIÓN ---
         function animate() {
             requestAnimationFrame(animate);
+            const time = Date.now() * 0.002;
 
-            if (isWindActive) {
-                const time = Date.now() * 0.002;
-                particles.forEach(p => {
+            if (isWind) {
+                winds.forEach(p => {
                     p.position.x += p.userData.speedX;
-                    if (p.position.x > -4 && p.position.x < 4) {
-                        p.position.y += 0.01; // Efecto ascendente
+                    if (p.position.x > -4.5 && p.position.x < 4.5) p.position.y += 0.015; 
+                    p.position.z += Math.sin(time * 2 + p.userData.offsetY) * 0.01;
+                    if (p.position.x > 9) resetWind(p);
+                });
+            }
+
+            if (isTemp) {
+                heatParticles.forEach(p => {
+                    if (p.userData.isOutside) {
+                        p.position.y += 0.02; 
+                        if (p.position.y > 7) p.position.y = 0;
+                    } else {
+                        p.position.y += Math.sin(time + p.position.x) * 0.005; 
                     }
-                    p.position.z += Math.sin(time + p.userData.offsetY) * 0.01;
-                    if (p.position.x > 8) resetParticle(p);
                 });
             }
 
@@ -368,7 +404,6 @@
             renderer.render(scene, camera);
         }
 
-        // Manejo del cambio de pantalla (Rotar el celular)
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
